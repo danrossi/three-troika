@@ -1,0 +1,6 @@
+[submodule "troika"]
+	path = troika
+	url = https://github.com/danrossi/troika.git
+[submodule "three.js"]
+	path = three.js
+	url = https://github.com/mrdoob/three.js.git

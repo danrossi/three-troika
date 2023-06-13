@@ -27714,15 +27714,13 @@ class WebGLRenderer {
 					const g = clearColor.g;
 					const b = clearColor.b;
 
-					const __webglFramebuffer = properties.get( _currentRenderTarget ).__webglFramebuffer;
-
 					if ( isUnsignedType ) {
 
 						uintClearColor[ 0 ] = r;
 						uintClearColor[ 1 ] = g;
 						uintClearColor[ 2 ] = b;
 						uintClearColor[ 3 ] = a;
-						_gl.clearBufferuiv( _gl.COLOR, __webglFramebuffer, uintClearColor );
+						_gl.clearBufferuiv( _gl.COLOR, 0, uintClearColor );
 
 					} else {
 
@@ -27730,7 +27728,7 @@ class WebGLRenderer {
 						intClearColor[ 1 ] = g;
 						intClearColor[ 2 ] = b;
 						intClearColor[ 3 ] = a;
-						_gl.clearBufferiv( _gl.COLOR, __webglFramebuffer, intClearColor );
+						_gl.clearBufferiv( _gl.COLOR, 0, intClearColor );
 
 					}
 

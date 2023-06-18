@@ -89,10 +89,10 @@ export default [
 			addons(),
 			glsl(),
 			resolve(),
-			strip(),
 			includePaths({
             	paths: ["./three.js/src"]
             }),
+			strip(),
 			header()
 		],
 		output: [
@@ -107,13 +107,13 @@ export default [
 		plugins: [
 			addons(),
 			glsl(),
-			resolve(),
-			strip(),
 			includePaths({
 				include: {
 				  'three': './build/three/three-base.module.js'
 				}
 		  	}),
+			resolve(),
+			strip(),
 			header()
 		],
 		output: [
@@ -141,7 +141,7 @@ export default [
 			{
 				format: 'iife',
 				name: 'THREE',
-				file: 'build/three.js',
+				file: 'build/three/three.js',
 				indent: '\t'
 			}
 		]
@@ -165,7 +165,7 @@ export default [
 			{
 				format: 'iife',
 				name: 'THREE',
-				file: 'build/three.min.js'
+				file: 'build/three/three.min.js'
 			}
 		]
 	},

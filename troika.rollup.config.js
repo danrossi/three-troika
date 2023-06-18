@@ -12,18 +12,97 @@ import includePaths from 'rollup-plugin-includepaths';
 
 export default [
     {
-        input: 'troika-core.js',
+        input: 'troika/packages/troika-animation/src/index.js',
         plugins: [
-            /*replace({
-                "process.env.NODE_ENV": JSON.stringify("production")
-            }),*/
+            strip()
+        ],
+        output: [
+            {
+                format: 'esm',
+                name: 'troika',
+                file: 'build/troika-animation.module.js',
+                indent: '\t'
+            }
+        ]
+    },
+    {
+        input: 'troika/packages/troika-three-utils/src/index.js',
+        plugins: [
+            includePaths({
+                include: {
+                    'three': './build/three/three.module.js'
+                }
+		  	}),
+            strip()
+        ],
+        external: [
+                "three"
+        ],
+        output: [
+            {
+                format: 'esm',
+                name: 'troika',
+                file: 'build/troika-three-utils.module.js',
+                indent: '\t'
+            }
+        ]
+    },
+    {
+        input: 'troika/packages/troika-worker-utils/src/index.js',
+        plugins: [
             replace({
                 'process.env.NODE_ENV': '"production"'
             }),
+            strip()
+           // nodeResolve({ browser:true, preferBuiltins: true })
+        ],
+        output: [
+            {
+                format: 'esm',
+                name: 'troika',
+                file: 'build/troika-worker-utils.module.js',
+                indent: '\t'
+            }
+        ]
+    },
+    {
+        input: 'troika/packages/troika-three-text/src/index.js',
+        plugins: [
             includePaths({
-				paths: ["troika/packages/troika-core/src"],
                 include: {
-                    'three': './build/three/three.module.js'
+                    'three': './build/three/three.module.js',
+                    'troika-worker-utils': './build/troika-worker-utils.module.js',
+                    'troika-three-utils': './build/troika-three-utils.module.js'
+                }
+		  	}),
+            nodeResolve({
+                // Favor local sources via our custom "module:src" field, and "browser" over "main" in resolution
+                mainFields: ['module:src', 'module', 'jsnext:main', 'browser', 'main']
+            }),
+            strip()
+        ],
+        external: [
+                "three",
+                "troika-worker-utils",
+                "troika-three-utils"
+        ],
+        output: [
+            {
+                format: 'esm',
+                name: 'troika',
+                file: 'build/troika-three-text.module.js',
+                indent: '\t'
+            }
+        ]
+    },
+    {
+        input: 'troika/packages/troika-flex-layout/src/index.js',
+        plugins: [
+            includePaths({
+                include: {
+                    'three': './build/three/three.module.js',
+                    'troika-worker-utils': './build/troika-worker-utils.module.js',
+                    'troika-three-text': './build/troika-three-text.module.js',
                 }
 		  	}),
             nodeResolve({
@@ -35,17 +114,43 @@ export default [
         ],
         external: [
                 "three",
-                //"THREE",
-                "react",
-                "prop-types",
-                "object-path"
+                'troika-worker-utils',
+                'troika-three-text'
         ],
         output: [
             {
-                 globals: {
-                    //"three": "THREE",
-                    "react": "react",
-                },
+                format: 'esm',
+                name: 'troika',
+                file: 'build/troika-flex-layout.module.js',
+                indent: '\t'
+            }
+        ]
+    },
+    {
+        input: 'troika-core.js',
+        plugins: [
+            replace({
+                'process.env.NODE_ENV': '"production"'
+            }),
+            includePaths({
+				paths: ["troika/packages/troika-core/src"],
+                include: {
+                    'three': './build/three/three.module.js',
+                    'troika-animation': './build/troika-animation.module.js'
+                }
+		  	}),
+            nodeResolve({
+                // Favor local sources via our custom "module:src" field, and "browser" over "main" in resolution
+                mainFields: ['module:src', 'module', 'jsnext:main', 'browser', 'main']
+            }),
+            strip()
+        ],
+        external: [
+                "three",
+                'troika-animation'
+        ],
+        output: [
+            {
                 format: 'esm',
                 name: 'troika',
                 file: 'build/troika-core.module.js',
@@ -56,17 +161,13 @@ export default [
     {
         input: 'troika-3d.js',
         plugins: [
-            /*replace({
-                "process.env.NODE_ENV": JSON.stringify("production")
-            }),*/
-            replace({
-                'process.env.NODE_ENV': '"production"'
-            }),
             includePaths({
 				paths: ["troika/packages/troika-3d/src"],
                 include: {
                     'three': './build/three/three.module.js',
-                    'troika-core': './build/troika-core.module.js'
+                    'troika-core': './build/troika-core.module.js',
+                    'troika-animation': './build/troika-animation.module.js',
+                    'troika-three-utils': './build/troika-three-utils.module.js'
                 }
 		  	}),
             nodeResolve({
@@ -74,21 +175,15 @@ export default [
                 mainFields: ['module:src', 'module', 'jsnext:main', 'browser', 'main']
             }),
             strip()
-           // nodeResolve({ browser:true, preferBuiltins: true })
         ],
         external: [
                 "three",
-                //"THREE",
-                "react",
-                "prop-types",
-                "object-path"
+                'troika-three-utils',
+                'troika-animation',
+                'troika-core'
         ],
         output: [
             {
-                 globals: {
-                    //"three": "THREE",
-                    "react": "react",
-                },
                 format: 'esm',
                 name: 'troika',
                 file: 'build/troika-3d.module.js',
@@ -97,20 +192,14 @@ export default [
         ]
     },
     {
-        input: 'troika-3d-ui.js',
+        input: 'troika/packages/troika-3d-text/src/index.js',
         plugins: [
-            /*replace({
-                "process.env.NODE_ENV": JSON.stringify("production")
-            }),*/
-            replace({
-                'process.env.NODE_ENV': '"production"'
-            }),
             includePaths({
-				paths: ["troika/packages/troika-3d/src"],
                 include: {
                     'three': './build/three/three.module.js',
-                    'troika-core': './build/troika-core.module.js',
-                    'troika-3d': './build/troika-3d.module.js'
+                    'troika-three-text': './build/troika-three-text.module.js',
+                    'troika-3d': './build/troika-3d.module.js',
+                    'troika-three-utils': './build/troika-three-utils.module.js'
                 }
 		  	}),
             nodeResolve({
@@ -122,17 +211,51 @@ export default [
         ],
         external: [
                 "three",
-                //"THREE",
-                "react",
-                "prop-types",
-                "object-path"
+                'troika-three-text',
+                'troika-3d',
+                'troika-three-utils'
         ],
         output: [
             {
-                 globals: {
-                    //"three": "THREE",
-                    "react": "react",
-                },
+                format: 'esm',
+                name: 'troika',
+                file: 'build/troika-3d-text.module.js',
+                indent: '\t'
+            }
+        ]
+    },
+    {
+        input: 'troika-3d-ui.js',
+        plugins: [
+            includePaths({
+				paths: ["troika/packages/troika-3d/src"],
+                include: {
+                    'three': './build/three/three.module.js',
+                    'troika-core': './build/troika-core.module.js',
+                    'troika-3d': './build/troika-3d.module.js',
+                    'troika-animation': './build/troika-animation.module.js',
+                    'troika-three-utils': './build/troika-three-utils.module.js',
+                    'troika-flex-layout': './build/troika-flex-layout.module.js',
+                    'troika-3d-text': './build/troika-3d-text.module.js'
+                }
+		  	}),
+            nodeResolve({
+                // Favor local sources via our custom "module:src" field, and "browser" over "main" in resolution
+                mainFields: ['module:src', 'module', 'jsnext:main', 'browser', 'main']
+            }),
+            strip()
+        ],
+        external: [
+                "three",
+                'troika-core',
+                'troika-3d',
+                'troika-animation',
+                'troika-three-utils',
+                'troika-flex-layout',
+                'troika-3d-text'
+        ],
+        output: [
+            {
                 format: 'esm',
                 name: 'troika',
                 file: 'build/troika-3d-ui.module.js',
@@ -143,9 +266,6 @@ export default [
     {
         input: 'troika-lib.js',
         plugins: [
-            /*replace({
-                "process.env.NODE_ENV": JSON.stringify("production")
-            }),*/
             replace({
                 'process.env.NODE_ENV': '"production"'
             }),
@@ -154,7 +274,13 @@ export default [
 				  'three': './build/three/three.module.js',
                   'troika-core': './build/troika-core.module.js',
                   'troika-3d': './build/troika-3d.module.js',
-                  'troika-3d-ui': './build/troika-3d-ui.module.js'
+                  'troika-3d-ui': './build/troika-3d-ui.module.js',
+                  'troika-animation': './build/troika-animation.module.js',
+                  'troika-three-utils': './build/troika-three-utils.module.js',
+                  'troika-flex-layout': './build/troika-flex-layout.module.js',
+                  'troika-3d-text': './build/troika-3d-text.module.js',
+                  'troika-worker-utils': './build/troika-worker-utils.module.js',
+                  'troika-three-text': './build/troika-three-text.module.js'
 				}
 		  	}),
             nodeResolve({
@@ -162,11 +288,8 @@ export default [
                 mainFields: ['module:src', 'module', 'jsnext:main', 'browser', 'main']
             }),
             strip()
-           // nodeResolve({ browser:true, preferBuiltins: true })
         ],
         external: [
-                //"three",
-                //"THREE",
                 "react",
                 "prop-types",
                 "object-path"
@@ -195,18 +318,23 @@ export default [
             }),
             includePaths({
 				include: {
-				  'three': './build/three/three.module.js',
-                  'troika-core': './build/troika-core.module.js',
-                  'troika-3d': './build/troika-3d.module.js',
-                  'troika-3d-ui': './build/troika-3d-ui.module.js'
-				}
+                    'three': './build/three/three.module.js',
+                    'troika-core': './build/troika-core.module.js',
+                    'troika-3d': './build/troika-3d.module.js',
+                    'troika-3d-ui': './build/troika-3d-ui.module.js',
+                    'troika-animation': './build/troika-animation.module.js',
+                    'troika-three-utils': './build/troika-three-utils.module.js',
+                    'troika-flex-layout': './build/troika-flex-layout.module.js',
+                    'troika-3d-text': './build/troika-3d-text.module.js',
+                    'troika-worker-utils': './build/troika-worker-utils.module.js',
+                    'troika-three-text': './build/troika-three-text.module.js'
+                  }
 		  	}),
             nodeResolve({
                 // Favor local sources via our custom "module:src" field, and "browser" over "main" in resolution
                 mainFields: ['module:src', 'module', 'jsnext:main', 'browser', 'main']
             }),
               strip()
-           // nodeResolve({ browser:true, preferBuiltins: true })
         ],
         external: [
                 //"three",
@@ -236,11 +364,17 @@ export default [
             }),
             includePaths({
 				include: {
-				  'three': './build/three/three.module.js',
-                  'troika-core': './build/troika-core.module.js',
-                  'troika-3d': './build/troika-3d.module.js',
-                  'troika-3d-ui': './build/troika-3d-ui.module.js'
-				}
+                    'three': './build/three/three.module.js',
+                    'troika-core': './build/troika-core.module.js',
+                    'troika-3d': './build/troika-3d.module.js',
+                    'troika-3d-ui': './build/troika-3d-ui.module.js',
+                    'troika-animation': './build/troika-animation.module.js',
+                    'troika-three-utils': './build/troika-three-utils.module.js',
+                    'troika-flex-layout': './build/troika-flex-layout.module.js',
+                    'troika-3d-text': './build/troika-3d-text.module.js',
+                    'troika-worker-utils': './build/troika-worker-utils.module.js',
+                    'troika-three-text': './build/troika-three-text.module.js'
+                  }
 		  	}),
             nodeResolve({
                 // Favor local sources via our custom "module:src" field, and "browser" over "main" in resolution

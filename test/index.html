@@ -68,7 +68,8 @@
             logo: "images/wowza-logo.png",
             logoPosition: "right",
             logoWidth: "8%",
-            enableWebGPU: true
+            enableWebGPU: false
+            //enableWebGPU: true
         };
 
         const rowConfig = {
@@ -112,7 +113,43 @@
 
             initThreeObject() {
 
-                const material = new troika.MeshBasicMaterial({ map: this.createTexture(this.parent.texture) });
+
+                const videoTexture =  this.createTexture(this.parent.texture);
+
+                let material;
+
+                if (this.parent.hasWebGPU) {
+                    videoTexture.colorSpace = troika.SRGBColorSpace;
+                    material = new troika.MeshBasicMaterial({ map: videoTexture });
+                } else {
+                    material = new troika.RawShaderMaterial( {
+                        uniforms: { map: { value: videoTexture } },
+                        vertexShader: `
+                            attribute vec2 uv;
+                            attribute vec4 position;
+                            uniform mat4 projectionMatrix;
+                            uniform mat4 modelViewMatrix;
+                            varying vec2 vUV;
+
+                            void main() {
+                                vUV = vec2(uv.x, uv.y); 
+                                gl_Position = projectionMatrix * modelViewMatrix * position;
+                            }
+                        `,
+                        fragmentShader: `
+                            precision highp float;
+                            precision highp int;
+                            uniform sampler2D map;
+                            varying vec2 vUV;
+                            void main() {
+                                gl_FragColor = texture2D( map, vUV );
+                            }
+                        `
+                    });
+
+                }
+
+                
                 //const material = new troika.MeshBasicMaterial({ color:0x000000 });
                 return new troika.Mesh(this.geometry, material);
             }
@@ -124,7 +161,7 @@
                 texture.minFilter = troika.LinearFilter;
                 texture.magFilter = troika.LinearFilter;
                 texture.format = troika.RGBAFormat;
-                texture.colorSpace = troika.SRGBColorSpace;
+                //texture.colorSpace = troika.SRGBColorSpace;
 
                 texture.crossOrigin = 'anonymous';
 
@@ -215,6 +252,7 @@
 
             constructor(parent) {
                 super(parent);
+                
             }
 
             afterUpdate() {
@@ -238,6 +276,7 @@
                 }
 
                 super.afterUpdate();
+
 
                 const border = this.layers.getChildByKey("border");
 
@@ -336,15 +375,16 @@
             async init(canvas) {
 
                 if (this.config.enableWebGPU && await troika.WebGPU.isAvailable()) {
+                    this.hasWebGPU = true;
 
                     this.rendererClass = troika.WebGPURenderer;
                     this._threeRenderer = new troika.WebGPURenderer({ canvas: canvas, alpha: true, antialias: true });
                 }
 
-                this.outputColorSpace = troika.LinearSRGBColorSpace;
-                this.colorSpace = troika.LinearSRGBColorSpace;
-                //this.outputColorSpace = troika.SRGBColorSpace;
-                //this.colorSpace = troika.SRGBColorSpace;
+               // this.outputColorSpace = troika.LinearSRGBColorSpace;
+               // this.colorSpace = troika.LinearSRGBColorSpace;
+                this.outputColorSpace = troika.SRGBColorSpace;
+                this.colorSpace = troika.SRGBColorSpace;
 
                 this.afterUpdate();
 
@@ -367,6 +407,7 @@
                         src: logoURL,
                         width: this.config.logoWidth,
                         //width: "8%",
+                        transparent: true,
                         position: "absolute",
                         top: 0.01,
                         //right: 0.03,
@@ -511,7 +552,7 @@
             onAddTexture(id, video, title) {
                 let key = id + '';
 
-                let itemConfig = Object.assign({}, this.videoCellConfig, { key: key, id: key, texture: video, order: this.streamTextures.size + 1, stretchVideo: true, title: title });
+                let itemConfig = Object.assign({}, this.videoCellConfig, { key: key, id: key, texture: video, order: this.streamTextures.size + 1, stretchVideo: true, title: title, hasWebGPU: this.hasWebGPU });
 
                 //itemConfig.children[0].key+=id;
 
@@ -605,7 +646,27 @@
 
         const merger = new VideoMerger(renderer, config);
 
+        function addExternalVideo() {
+            const video = document.createElement("video");
+            video.autoplay = true;
+            video.muted = true;
+            video.crossOrigin = "anonymous";
 
+            video.addEventListener("loadedmetadata", () => {
+                setTimeout(() => {
+                    console.log("add Video");
+                    addVideo(1, video, "Title 1");
+                }, 1000);
+            });
+
+            video.src = "https://videos.electroteque.org/bitrate/sintel_2000k.mp4";
+            video.play();
+        }
+        addExternalVideo();
+
+
+        
+        
 
     </script>
 

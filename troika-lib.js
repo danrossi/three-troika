@@ -18,5 +18,6 @@ export {
     WebGPU,
     WebGPURenderer,
     SRGBColorSpace,
-    LinearSRGBColorSpace
+    LinearSRGBColorSpace,
+    ClampToEdgeWrapping
    } from 'three';

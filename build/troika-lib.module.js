@@ -67181,4 +67181,4 @@ class UIImage3DFacade extends Object3DFacade {
 
 var UIImage3DFacade$1 = extendAsFlexNode(UIImage3DFacade);
 
-export { Group3DFacade, LinearFilter, LinearSRGBColorSpace, Mesh, MeshBasicMaterial, Object3DFacade, PlaneGeometry, RGBAFormat, SRGBColorSpace, Scene, ShaderMaterial, Texture, TextureLoader, UIBlock3DFacade, UIImage3DFacade$1 as UIImage3DFacade, VideoTexture, WebGPU, WebGPURenderer, World3DFacade, extendAsFlexNode };
+export { ClampToEdgeWrapping, Group3DFacade, LinearFilter, LinearSRGBColorSpace, Mesh, MeshBasicMaterial, Object3DFacade, PlaneGeometry, RGBAFormat, SRGBColorSpace, Scene, ShaderMaterial, Texture, TextureLoader, UIBlock3DFacade, UIImage3DFacade$1 as UIImage3DFacade, VideoTexture, WebGPU, WebGPURenderer, World3DFacade, extendAsFlexNode };

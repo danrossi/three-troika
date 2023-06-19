@@ -67184,6 +67184,7 @@ if (troikaAlphaMult == 0.0) {
 
 	var UIImage3DFacade$1 = extendAsFlexNode(UIImage3DFacade);
 
+	exports.ClampToEdgeWrapping = ClampToEdgeWrapping;
 	exports.Group3DFacade = Group3DFacade;
 	exports.LinearFilter = LinearFilter;
 	exports.LinearSRGBColorSpace = LinearSRGBColorSpace;

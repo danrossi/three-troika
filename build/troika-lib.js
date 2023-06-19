@@ -29972,20 +29972,6 @@ var troika = (function (exports) {
 
 	}
 
-	class RawShaderMaterial extends ShaderMaterial {
-
-		constructor( parameters ) {
-
-			super( parameters );
-
-			this.isRawShaderMaterial = true;
-
-			this.type = 'RawShaderMaterial';
-
-		}
-
-	}
-
 	class PointsMaterial extends Material {
 
 		constructor( parameters ) {
@@ -33967,6 +33953,12 @@ var troika = (function (exports) {
 
 	}
 
+	/**
+	 * @license
+	 * Copyright 2010-2023 Three.js Authors
+	 * SPDX-License-Identifier: MIT
+	 */
+
 	class WebGPU {
 
 		static async isAvailable() {
@@ -34196,9 +34188,11 @@ var troika = (function (exports) {
 
 	let id$3 = 0;
 
-	class RenderObject {
+	class RenderObject extends EventDispatcher {
 
 		constructor( nodes, geometries, renderer, object, material, scene, camera, lightsNode ) {
+
+			super();
 
 			this._nodes = nodes;
 			this._geometries = geometries;
@@ -34220,6 +34214,16 @@ var troika = (function (exports) {
 
 			this._materialVersion = - 1;
 			this._materialCacheKey = '';
+
+			const onDispose = () => {
+
+				this.material.removeEventListener( 'dispose', onDispose );
+
+				this.dispose();
+
+			};
+
+			this.material.addEventListener( 'dispose', onDispose );
 
 		}
 
@@ -34288,6 +34292,12 @@ var troika = (function (exports) {
 
 		}
 
+		dispose() {
+
+			this.dispatchEvent( { type: 'dispose' } );
+
+		}
+
 	}
 
 	class RenderObjects extends ChainMap {
@@ -34327,10 +34337,9 @@ var troika = (function (exports) {
 
 				if ( data.cacheKey !== cacheKey ) {
 
-					data.cacheKey = cacheKey;
+					renderObject.dispose();
 
-					this.pipelines.delete( renderObject );
-					this.nodes.delete( renderObject );
+					renderObject = this.get( object, material, scene, camera, lightsNode );
 
 				}
 
@@ -34359,7 +34368,7 @@ var troika = (function (exports) {
 
 				const onDispose = () => {
 
-					renderObject.material.removeEventListener( 'dispose', onDispose );
+					renderObject.removeEventListener( 'dispose', onDispose );
 
 					this.pipelines.delete( renderObject );
 					this.nodes.delete( renderObject );
@@ -34368,7 +34377,7 @@ var troika = (function (exports) {
 
 				};
 
-				renderObject.material.addEventListener( 'dispose', onDispose );
+				renderObject.addEventListener( 'dispose', onDispose );
 
 			}
 
@@ -36743,7 +36752,7 @@ var troika = (function (exports) {
 
 			const sharedNodeType = sharedNode.getInputType( builder );
 
-			const nodeUniform = builder.getUniformFromNode( sharedNode, sharedNodeType, builder.shaderStage );
+			const nodeUniform = builder.getUniformFromNode( sharedNode, sharedNodeType, builder.shaderStage, builder.context.label );
 			const propertyName = builder.getPropertyName( nodeUniform );
 
 			return builder.format( propertyName, type, output );
@@ -37103,8 +37112,10 @@ var troika = (function (exports) {
 	}
 
 	const context = nodeProxy( ContextNode );
+	const label = ( node, name ) => context( node, { label: name } );
 
 	addNodeElement( 'context', context );
+	addNodeElement( 'label', label );
 
 	addNodeClass( ContextNode );
 
@@ -39018,7 +39029,7 @@ var troika = (function (exports) {
 	CameraNode.NEAR = 'near';
 	CameraNode.FAR = 'far';
 
-	const cameraProjectionMatrix = nodeImmutable( CameraNode, CameraNode.PROJECTION_MATRIX );
+	const cameraProjectionMatrix = label( nodeImmutable( CameraNode, CameraNode.PROJECTION_MATRIX ), 'projectionMatrix' );
 	const cameraNear = nodeImmutable( CameraNode, CameraNode.NEAR );
 	const cameraFar = nodeImmutable( CameraNode, CameraNode.FAR );
 	const cameraViewMatrix = nodeImmutable( CameraNode, CameraNode.VIEW_MATRIX );
@@ -39047,7 +39058,7 @@ var troika = (function (exports) {
 	}
 
 	nodeImmutable( ModelNode, ModelNode.DIRECTION );
-	const modelViewMatrix = nodeImmutable( ModelNode, ModelNode.VIEW_MATRIX );
+	const modelViewMatrix = label( nodeImmutable( ModelNode, ModelNode.VIEW_MATRIX ), 'modelViewMatrix' );
 	const modelNormalMatrix = nodeImmutable( ModelNode, ModelNode.NORMAL_MATRIX );
 	const modelWorldMatrix = nodeImmutable( ModelNode, ModelNode.WORLD_MATRIX );
 	nodeImmutable( ModelNode, ModelNode.POSITION );
@@ -39219,10 +39230,8 @@ var troika = (function (exports) {
 
 	}
 
-	const label = nodeProxy( VarNode );
-	const temp = label;
+	const temp = nodeProxy( VarNode );
 
-	addNodeElement( 'label', label );
 	addNodeElement( 'temp', temp );
 
 	addNodeClass( VarNode );
@@ -39315,7 +39324,7 @@ var troika = (function (exports) {
 	const tangentLocal = nodeImmutable( TangentNode, TangentNode.LOCAL );
 	const tangentView = nodeImmutable( TangentNode, TangentNode.VIEW );
 	const tangentWorld = nodeImmutable( TangentNode, TangentNode.WORLD );
-	const transformedTangentView = label( tangentView, 'TransformedTangentView' );
+	const transformedTangentView = temp( tangentView, 'TransformedTangentView' );
 	normalize( transformedTangentView.transformDirection( cameraViewMatrix ) );
 
 	addNodeClass( TangentNode );
@@ -40746,6 +40755,7 @@ var troika = (function (exports) {
 			this.alphaTestNode = null;
 
 			this.positionNode = null;
+			this.outputNode = null;
 
 		}
 
@@ -40775,14 +40785,22 @@ var troika = (function (exports) {
 
 			builder.addStack();
 
-			if ( this.normals === true ) this.constructNormal( builder );
+			if ( this.isUnlit === false ) {
 
-			this.constructDiffuseColor( builder );
-			this.constructVariants( builder );
+				if ( this.normals === true ) this.constructNormal( builder );
 
-			const outgoingLightNode = this.constructLighting( builder );
+				this.constructDiffuseColor( builder );
+				this.constructVariants( builder );
 
-			builder.stack.outputNode = this.constructOutput( builder, outgoingLightNode, diffuseColor.a );
+				const outgoingLightNode = this.constructLighting( builder );
+
+				builder.stack.outputNode = this.constructOutput( builder, vec4( outgoingLightNode, diffuseColor.a ) );
+
+			} else {
+
+				builder.stack.outputNode = this.constructOutput( builder, this.outputNode || vec4( 0, 0, 0, 1 ) );
+
+			}
 
 			builder.addFlow( 'fragment', builder.removeStack() );
 
@@ -40966,7 +40984,7 @@ var troika = (function (exports) {
 
 		}
 
-		constructOutput( builder, outgoingLight, opacity ) {
+		constructOutput( builder, outputNode ) {
 
 			const renderer = builder.renderer;
 
@@ -40976,13 +40994,9 @@ var troika = (function (exports) {
 
 			if ( toneMappingNode ) {
 
-				outgoingLight = toneMappingNode.context( { color: outgoingLight } );
+				outputNode = vec4( toneMappingNode.context( { color: outputNode.rgb } ), outputNode.a );
 
 			}
-
-			// @TODO: Optimize outputNode to vec3.
-
-			let outputNode = vec4( outgoingLight, opacity );
 
 			// ENCODING
 
@@ -41104,6 +41118,31 @@ var troika = (function (exports) {
 			}
 
 			return data;
+
+		}
+
+		get isUnlit() {
+
+			return this.constructor === NodeMaterial.prototype.constructor;
+
+		}
+
+		copy( source ) {
+
+			this.lightsNode = source.lightsNode;
+			this.envNode = source.envNode;
+
+			this.colorNode = source.colorNode;
+			this.normalNode = source.normalNode;
+			this.opacityNode = source.opacityNode;
+			this.backdropNode = source.backdropNode;
+			this.backdropAlphaNode = source.backdropAlphaNode;
+			this.alphaTestNode = source.alphaTestNode;
+
+			this.positionNode = source.positionNode;
+			this.outputNode = source.outputNode;
+
+			return super.copy( source );
 
 		}
 
@@ -41462,8 +41501,8 @@ var troika = (function (exports) {
 		constructor( object, renderer, parser ) {
 
 			this.object = object;
-			this.material = object && ( object.material || null );
-			this.geometry = object && ( object.geometry || null );
+			this.material = ( object && object.material ) || null;
+			this.geometry = ( object && object.geometry ) || null;
 			this.renderer = renderer;
 			this.parser = parser;
 
@@ -41998,7 +42037,7 @@ var troika = (function (exports) {
 
 		}
 
-		getUniformFromNode( node, type, shaderStage = this.shaderStage ) {
+		getUniformFromNode( node, type, shaderStage = this.shaderStage, name = null ) {
 
 			const nodeData = this.getDataFromNode( node, shaderStage );
 
@@ -42008,7 +42047,7 @@ var troika = (function (exports) {
 
 				const index = this.uniforms.index ++;
 
-				nodeUniform = new NodeUniform( 'nodeUniform' + index, type, node );
+				nodeUniform = new NodeUniform( name || ( 'nodeUniform' + index ), type, node );
 
 				this.uniforms[ shaderStage ].push( nodeUniform );
 
@@ -45377,21 +45416,6 @@ var troika = (function (exports) {
 
 		}
 
-		copy( source ) {
-
-			this.colorNode = source.colorNode;
-			this.opacityNode = source.opacityNode;
-
-			this.alphaTestNode = source.alphaTestNode;
-
-			this.lightNode = source.lightNode;
-
-			this.positionNode = source.positionNode;
-
-			return super.copy( source );
-
-		}
-
 	}
 
 	addNodeMaterial( LineBasicNodeMaterial );
@@ -45420,16 +45444,6 @@ var troika = (function (exports) {
 
 		}
 
-		copy( source ) {
-
-			this.opacityNode = source.opacityNode;
-
-			this.positionNode = source.positionNode;
-
-			return super.copy( source );
-
-		}
-
 	}
 
 	addNodeMaterial( MeshNormalNodeMaterial );
@@ -45449,21 +45463,6 @@ var troika = (function (exports) {
 			this.setDefaultValues( defaultValues$5 );
 
 			this.setValues( parameters );
-
-		}
-
-		copy( source ) {
-
-			this.colorNode = source.colorNode;
-			this.opacityNode = source.opacityNode;
-
-			this.alphaTestNode = source.alphaTestNode;
-
-			this.lightNode = source.lightNode;
-
-			this.positionNode = source.positionNode;
-
-			return super.copy( source );
 
 		}
 
@@ -45579,17 +45578,8 @@ var troika = (function (exports) {
 
 		copy( source ) {
 
-			this.colorNode = source.colorNode;
-			this.opacityNode = source.opacityNode;
-
-			this.alphaTestNode = source.alphaTestNode;
-
 			this.shininessNode = source.shininessNode;
 			this.specularNode = source.specularNode;
-
-			this.lightNode = source.lightNode;
-
-			this.positionNode = source.positionNode;
 
 			return super.copy( source );
 
@@ -45900,23 +45890,10 @@ var troika = (function (exports) {
 
 		copy( source ) {
 
-			this.colorNode = source.colorNode;
-			this.opacityNode = source.opacityNode;
-
-			this.alphaTestNode = source.alphaTestNode;
-
-			this.normalNode = source.normalNode;
-
 			this.emissiveNode = source.emissiveNode;
 
 			this.metalnessNode = source.metalnessNode;
 			this.roughnessNode = source.roughnessNode;
-
-			this.envNode = source.envNode;
-
-			this.lightsNode = source.lightsNode;
-
-			this.positionNode = source.positionNode;
 
 			return super.copy( source );
 
@@ -46052,16 +46029,7 @@ var troika = (function (exports) {
 
 		copy( source ) {
 
-			this.colorNode = source.colorNode;
-			this.opacityNode = source.opacityNode;
-
-			this.alphaTestNode = source.alphaTestNode;
-
-			this.lightNode = source.lightNode;
-
 			this.sizeNode = source.sizeNode;
-
-			this.positionNode = source.positionNode;
 
 			return super.copy( source );
 
@@ -46150,13 +46118,6 @@ var troika = (function (exports) {
 		}
 
 		copy( source ) {
-
-			this.colorNode = source.colorNode;
-			this.opacityNode = source.opacityNode;
-
-			this.alphaTestNode = source.alphaTestNode;
-
-			this.lightNode = source.lightNode;
 
 			this.positionNode = source.positionNode;
 			this.rotationNode = source.rotationNode;
@@ -49890,7 +49851,7 @@ fn threejs_repeatWrapping( uv : vec2<f32>, dimension : vec2<u32> ) -> vec2<u32> 
 ` )
 	};
 
-	class WebGPUNodeBuilder extends NodeBuilder {
+	class WGSLNodeBuilder extends NodeBuilder {
 
 		constructor( object, renderer ) {
 
@@ -50048,9 +50009,9 @@ fn threejs_repeatWrapping( uv : vec2<f32>, dimension : vec2<u32> ) -> vec2<u32> 
 
 		}
 
-		getUniformFromNode( node, type, shaderStage ) {
+		getUniformFromNode( node, type, shaderStage, name = null ) {
 
-			const uniformNode = super.getUniformFromNode( node, type, shaderStage );
+			const uniformNode = super.getUniformFromNode( node, type, shaderStage, name );
 			const nodeData = this.getDataFromNode( node, shaderStage );
 
 			if ( nodeData.uniformGPU === undefined ) {
@@ -50306,7 +50267,7 @@ fn threejs_repeatWrapping( uv : vec2<f32>, dimension : vec2<u32> ) -> vec2<u32> 
 
 						snippets.push( `${ attributesSnippet } ${ varying.name } : ${ this.getType( varying.type ) }` );
 
-					} else if ( vars.includes( varying ) === false ) {
+					} else if ( shaderStage === 'vertex' && vars.includes( varying ) === false ) {
 
 						vars.push( varying );
 
@@ -50344,7 +50305,7 @@ fn threejs_repeatWrapping( uv : vec2<f32>, dimension : vec2<u32> ) -> vec2<u32> 
 
 					if ( shaderStage === 'fragment' ) {
 
-						bindingSnippets.push( `@group( 0 ) @binding( ${index ++} ) var ${uniform.name}_sampler : sampler;` );
+						bindingSnippets.push( `@binding( ${index ++} ) @group( 0 ) var ${uniform.name}_sampler : sampler;` );
 
 					}
 
@@ -50370,7 +50331,7 @@ fn threejs_repeatWrapping( uv : vec2<f32>, dimension : vec2<u32> ) -> vec2<u32> 
 
 					}
 
-					bindingSnippets.push( `@group( 0 ) @binding( ${index ++} ) var ${uniform.name} : ${textureType};` );
+					bindingSnippets.push( `@binding( ${index ++} ) @group( 0 ) var ${uniform.name} : ${textureType};` );
 
 				} else if ( uniform.type === 'buffer' || uniform.type === 'storageBuffer' ) {
 
@@ -53364,7 +53325,7 @@ fn main( @location( 0 ) vTex : vec2<f32> ) -> @location( 0 ) vec4<f32> {
 
 		createNodeBuilder( object, renderer ) {
 
-			return new WebGPUNodeBuilder( object, renderer );
+			return new WGSLNodeBuilder( object, renderer );
 
 		}
 
@@ -67231,9 +67192,10 @@ if (troikaAlphaMult == 0.0) {
 	exports.Object3DFacade = Object3DFacade;
 	exports.PlaneGeometry = PlaneGeometry;
 	exports.RGBAFormat = RGBAFormat;
-	exports.RawShaderMaterial = RawShaderMaterial;
 	exports.SRGBColorSpace = SRGBColorSpace;
 	exports.Scene = Scene;
+	exports.ShaderMaterial = ShaderMaterial;
+	exports.Texture = Texture;
 	exports.TextureLoader = TextureLoader;
 	exports.UIBlock3DFacade = UIBlock3DFacade;
 	exports.UIImage3DFacade = UIImage3DFacade$1;

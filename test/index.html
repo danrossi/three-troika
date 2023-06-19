@@ -105,6 +105,43 @@
             return height * camera.aspect;
         };
 
+        let _requestVideoFrameCallback = false;
+
+		class CustomVideoTexture extends troika.Texture {
+
+			constructor(video) {
+				super(video, troika.Texture.DEFAULT_MAPPING, troika.ClampToEdgeWrapping, troika.ClampToEdgeWrapping, troika.LinearFilter, troika.LinearFilter, troika.RGBAFormat);
+
+				this.generateMipmaps = false;
+
+				const updateVideo = () => {
+
+					this.needsUpdate = true;
+					video.requestVideoFrameCallback(updateVideo);
+
+				}
+
+				if ('requestVideoFrameCallback' in video) {
+
+					_requestVideoFrameCallback = true;
+
+					video.requestVideoFrameCallback(updateVideo);
+
+				}
+
+			}
+
+			get isVideoTexture() {
+				return true;
+			}
+
+			update() {
+				if (!_requestVideoFrameCallback) this.needsUpdate = true;
+			}
+
+		}
+
+
         class VideoFacade extends troika.Object3DFacade {
             constructor(parent) {
                 super(parent);
@@ -118,35 +155,45 @@
 
                 let material;
 
+
                 if (this.parent.hasWebGPU) {
                     videoTexture.colorSpace = troika.SRGBColorSpace;
                     material = new troika.MeshBasicMaterial({ map: videoTexture });
                 } else {
-                    material = new troika.RawShaderMaterial( {
+                    videoTexture.colorSpace = troika.LinearSRGBColorSpace;
+                    //use shader material for performance srgb decode fix
+                    material = new troika.ShaderMaterial( {
                         uniforms: { map: { value: videoTexture } },
                         vertexShader: `
-                            attribute vec2 uv;
-                            attribute vec4 position;
-                            uniform mat4 projectionMatrix;
-                            uniform mat4 modelViewMatrix;
-                            varying vec2 vUV;
+                            #define attribute in
+                            #define varying out
+                            #define texture2D texture
+                            precision highp float;
+                            precision highp int;
+
+                            varying vec2 vUv;
+                            varying vec3 vClipPosition;
 
                             void main() {
-                                vUV = vec2(uv.x, uv.y); 
-                                gl_Position = projectionMatrix * modelViewMatrix * position;
+                                vUv = vec3( uv, 1 ).xy;
+                                //vec3 transformed = vec3( position );
+                                vec4 mvPosition = vec4( position, 1.0 );
+                                mvPosition = modelViewMatrix * mvPosition;
+                                gl_Position = projectionMatrix * mvPosition;
+            
                             }
                         `,
                         fragmentShader: `
-                            precision highp float;
-                            precision highp int;
                             uniform sampler2D map;
-                            varying vec2 vUV;
+                            varying vec2 vUv;
+                            
                             void main() {
-                                gl_FragColor = texture2D( map, vUV );
+                                gl_FragColor = texture2D( map, vUv );
+                                //gl_FragColor = linearToOutputTexel( gl_FragColor );
+                                gl_FragColor.rgb *= gl_FragColor.a;
                             }
                         `
                     });
-
                 }
 
                 
@@ -156,11 +203,11 @@
 
             createTexture(video) {
 
-                var texture = new troika.VideoTexture(video);
-                texture.needsUpdate = true;
-                texture.minFilter = troika.LinearFilter;
-                texture.magFilter = troika.LinearFilter;
-                texture.format = troika.RGBAFormat;
+                var texture = new CustomVideoTexture(video);
+                //texture.needsUpdate = true;
+                //texture.minFilter = troika.LinearFilter;
+                //texture.magFilter = troika.LinearFilter;
+                //texture.format = troika.RGBAFormat;
                 //texture.colorSpace = troika.SRGBColorSpace;
 
                 texture.crossOrigin = 'anonymous';

@@ -30,6 +30,7 @@
   "scripts": {
     "build": "npm run build-three && npm run build-troika",
     "build-troika": "rollup -c troika.rollup.config.js",
-    "build-three": "rollup -c three.rollup.config.js"
+    "build-three": "rollup -c three.rollup.config.js",
+    "update": " git submodule update --remote"
   }
 }

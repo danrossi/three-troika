@@ -382,7 +382,9 @@ export default [
             }),
             strip(),
            // nodeResolve({ browser:true, preferBuiltins: true }),
-            terser()
+            terser({
+                keep_classnames: /ArrayUniformNode|StorageBufferNode|UserDataNode|IESSpotLight|Material/
+            })
         ],
         external: [
            // "three",

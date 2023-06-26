@@ -383,7 +383,7 @@ export default [
             strip(),
            // nodeResolve({ browser:true, preferBuiltins: true }),
             terser({
-                keep_classnames: /ArrayUniformNode|StorageBufferNode|UserDataNode|IESSpotLight|Material/
+                keep_classnames: /ArrayUniformNode|StorageBufferNode|UserDataNode|IESSpotLight|Material|PointLightHelper|FunctionNode|DirectionalLightHelper|SpotLightHelper|RectAreaLight/
             })
         ],
         external: [

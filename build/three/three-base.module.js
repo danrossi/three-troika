@@ -17553,11 +17553,31 @@ function WebGLObjects( gl, geometries, attributes, info ) {
 
 			}
 
-			attributes.update( object.instanceMatrix, gl.ARRAY_BUFFER );
+			if ( updateMap.get( object ) !== frame ) {
 
-			if ( object.instanceColor !== null ) {
+				attributes.update( object.instanceMatrix, gl.ARRAY_BUFFER );
 
-				attributes.update( object.instanceColor, gl.ARRAY_BUFFER );
+				if ( object.instanceColor !== null ) {
+
+					attributes.update( object.instanceColor, gl.ARRAY_BUFFER );
+
+				}
+
+				updateMap.set( object, frame );
+
+			}
+
+		}
+
+		if ( object.isSkinnedMesh ) {
+
+			const skeleton = object.skeleton;
+
+			if ( updateMap.get( skeleton ) !== frame ) {
+
+				skeleton.update();
+
+				updateMap.set( skeleton, frame );
 
 			}
 
@@ -27767,7 +27787,7 @@ class WebGLRenderer {
 
 			}
 
-			if ( _gl instanceof WebGLRenderingContext ) { // @deprecated, r153
+			if ( typeof WebGLRenderingContext !== 'undefined' && _gl instanceof WebGLRenderingContext ) { // @deprecated, r153
 
 			}
 
@@ -28553,6 +28573,8 @@ class WebGLRenderer {
 
 			//
 
+			this.info.render.frame ++;
+
 			if ( _clippingEnabled === true ) clipping.beginShadows();
 
 			const shadowsArray = currentRenderState.state.shadowsArray;
@@ -28565,7 +28587,6 @@ class WebGLRenderer {
 
 			if ( this.info.autoReset === true ) this.info.reset();
 
-			this.info.render.frame ++;
 
 			//
 
@@ -28694,19 +28715,6 @@ class WebGLRenderer {
 				} else if ( object.isMesh || object.isLine || object.isPoints ) {
 
 					if ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) {
-
-						if ( object.isSkinnedMesh ) {
-
-							// update skeleton only once in a frame
-
-							if ( object.skeleton.frame !== info.render.frame ) {
-
-								object.skeleton.update();
-								object.skeleton.frame = info.render.frame;
-
-							}
-
-						}
 
 						const geometry = objects.update( object );
 						const material = object.material;

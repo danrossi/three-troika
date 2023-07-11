@@ -1,4 +1,4 @@
-import { Vector3, Object3D, Sphere, Raycaster, Vector2, Matrix4, Quaternion, PerspectiveCamera, OrthographicCamera, Frustum, Ray, Group, HemisphereLightHelper, HemisphereLight, AmbientLight, DirectionalLightHelper, DirectionalLight, SpotLightHelper, SpotLight, PointLightHelper, PointLight, RectAreaLight, InstancedBufferGeometry, InstancedBufferAttribute, Scene, FogExp2, Fog, WebGLRenderer, Color, LinearSRGBColorSpace, NoToneMapping, CanvasTexture, BufferGeometry, MeshBasicMaterial, MeshDepthMaterial, MeshDistanceMaterial, MeshLambertMaterial, MeshMatcapMaterial, MeshNormalMaterial, MeshPhongMaterial, MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, Mesh, BoxGeometry, CircleGeometry, DoubleSide, PlaneGeometry, SphereGeometry } from 'three';
+import { Vector3, Object3D, Sphere, Raycaster, Vector2, Matrix4, Quaternion, PerspectiveCamera, OrthographicCamera, Frustum, Ray, Group, HemisphereLightHelper, HemisphereLight, AmbientLight, DirectionalLightHelper, DirectionalLight, SpotLightHelper, SpotLight, PointLightHelper, PointLight, RectAreaLight, InstancedBufferGeometry, InstancedBufferAttribute, Scene, FogExp2, Fog, WebGLRenderer, Color, NoToneMapping, CanvasTexture, BufferGeometry, MeshBasicMaterial, MeshDepthMaterial, MeshDistanceMaterial, MeshLambertMaterial, MeshMatcapMaterial, MeshNormalMaterial, MeshPhongMaterial, MeshPhysicalMaterial, MeshStandardMaterial, MeshToonMaterial, Mesh, BoxGeometry, CircleGeometry, DoubleSide, PlaneGeometry, SphereGeometry } from 'three';
 import { Facade, utils, PointerEventTarget, WorldBaseFacade } from 'troika-core';
 export { Facade, ListFacade, ParentFacade } from 'troika-core';
 import { invertMatrix4, createDerivedMaterial, getShaderUniformTypes, voidMainRegExp, getShadersForMaterial } from 'troika-three-utils';
@@ -2182,8 +2182,14 @@ class World3DFacade extends WorldBaseFacade {
       this._bgColor = backgroundColor;
     }
 
-    renderer.outputColorSpace = this.outputColorSpace || LinearSRGBColorSpace;
-    renderer.colorSpace = this.colorSpace || LinearSRGBColorSpace;
+
+    //backwards compatibility support for output encoding and color space
+    if ('outputColorSpace' in renderer) {
+      renderer.outputColorSpace = this.outputColorSpace || 'srgb';
+    } else {
+      renderer.outputEncoding = this.outputEncoding || 3000;
+    }
+
     renderer.toneMapping = this.toneMapping || NoToneMapping;
 
     // Update render canvas size

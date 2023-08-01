@@ -24,6 +24,8 @@ export { DepthTexture } from 'textures/DepthTexture.js';
 export { CanvasTexture } from 'textures/CanvasTexture.js';
 
 
+export { RenderTarget } from 'core/RenderTarget.js';
+
 export { Texture } from 'textures/Texture.js';
 export { FramebufferTexture } from 'textures/FramebufferTexture.js';
 

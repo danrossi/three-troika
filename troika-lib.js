@@ -19,5 +19,6 @@ export {
     WebGPURenderer,
     SRGBColorSpace,
     LinearSRGBColorSpace,
-    ClampToEdgeWrapping
+    ClampToEdgeWrapping,
+    LinearSRGBMaterial
    } from 'three';

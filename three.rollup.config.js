@@ -109,7 +109,8 @@ export default [
 			glsl(),
 			includePaths({
 				include: {
-				  'three': './build/three/three-base.module.js'
+				  'three': './build/three/three-base.module.js',
+				  'linearsrgb-material': './node_modules/three-webgpu-renderer/build/linearsrgb-material.module.js'
 				}
 		  	}),
 			resolve(),
@@ -132,7 +133,8 @@ export default [
 			strip(),
 			includePaths({
 				include: {
-				  'three': './build/three/three-base.module.js'
+				  'three': './build/three/three-base.module.js',
+				  'linearsrgb-material': './node_modules/three-webgpu-renderer/build/linearsrgb-material.module.js'
 				}
 		  	}),
 			header()
@@ -155,7 +157,8 @@ export default [
 			strip(),
 			includePaths({
 				include: {
-				  'three': './build/three/three-base.module.js'
+				  'three': './build/three/three-base.module.js',
+				  'linearsrgb-material': './node_modules/three-webgpu-renderer/build/linearsrgb-material.module.js'
 				}
 		  	}),
 			terser(),

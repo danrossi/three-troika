@@ -160,7 +160,8 @@
                     videoTexture.colorSpace = troika.SRGBColorSpace;
                     material = new troika.MeshBasicMaterial({ map: videoTexture });
                 } else {
-                    videoTexture.colorSpace = troika.LinearSRGBColorSpace;
+                    material = new troika.LinearSRGBMaterial({ map: videoTexture });
+                    //videoTexture.colorSpace = troika.LinearSRGBColorSpace;
                     //use shader material for performance srgb decode fix
                     /*material = new troika.ShaderMaterial( {
                         uniforms: { map: { value: videoTexture } },
@@ -197,7 +198,7 @@
 
                    
 	
-                    material = new troika.MeshBasicMaterial({ map: videoTexture });
+                    /*material = new troika.MeshBasicMaterial({ map: videoTexture });
 
                     material.onBeforeCompile = function (shader) {
 
@@ -218,7 +219,7 @@
                                             `
                         );
 
-			        };
+			        };*/
 
                 }
 

@@ -106,4 +106,6 @@ export { AmbientLight } from 'lights/AmbientLight.js';
 export { HemisphereLight } from 'lights/HemisphereLight.js';
 export { RectAreaLight } from 'lights/RectAreaLight.js';
 
+export { createCanvasElement } from 'utils.js';
+
 export * from 'constants.js';

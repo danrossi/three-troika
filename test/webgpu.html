@@ -10,7 +10,6 @@
 
     <!--  <script src="./three.min.js"></script> -->
 
-    <script src="../build/troika-lib.js"></script>
 
 
 
@@ -24,7 +23,11 @@
 
 
 
-    <script>
+    <script type="module">
+
+        import * as troika from "../build/troika-lib.module.js";
+
+        //troika = await troika;
 
         var cameraEnabled = true;
         var renderer = document.getElementById('renderer');

@@ -124,7 +124,7 @@ export default [
 			}
 		]
 	},
-	{
+	/*{
 		input: './three-gpu-renderer.js',
 		plugins: [
 			addons(),
@@ -134,7 +134,7 @@ export default [
 			includePaths({
 				include: {
 				  'three': './build/three/three-base.module.js',
-				  'linearsrgb-material': './node_modules/three-webgpu-renderer/build/linearsrgb-material.module.js'
+				  //'linearsrgb-material': './node_modules/three-webgpu-renderer/build/linearsrgb-material.module.js'
 				}
 		  	}),
 			header()
@@ -171,5 +171,5 @@ export default [
 				file: 'build/three/three.min.js'
 			}
 		]
-	},
+	},*/
 ];

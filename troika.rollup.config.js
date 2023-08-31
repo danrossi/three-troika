@@ -8,7 +8,7 @@ import strip from '@rollup/plugin-strip';
 
 import includePaths from 'rollup-plugin-includepaths';
 
-
+import tla from 'rollup-plugin-tla';
 
 export default [
     {
@@ -334,6 +334,7 @@ export default [
                 // Favor local sources via our custom "module:src" field, and "browser" over "main" in resolution
                 mainFields: ['module:src', 'module', 'jsnext:main', 'browser', 'main']
             }),
+            tla(),
               strip()
         ],
         external: [
@@ -381,6 +382,7 @@ export default [
                 mainFields: ['module:src', 'module', 'jsnext:main', 'browser', 'main']
             }),
             strip(),
+            tla(),
            // nodeResolve({ browser:true, preferBuiltins: true }),
            terser({
             keep_classnames: /ArrayUniformNode|StorageBufferNode|UserDataNode|IESSpotLight|Material|PointLightHelper|FunctionNode|DirectionalLightHelper|SpotLightHelper|RectAreaLight|LightsNode|ToneMappingNode|HemisphereLightHelper/

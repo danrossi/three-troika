@@ -11,7 +11,7 @@ var troika = (async function (exports) {
 	 * Copyright 2010-2021 Three.js Authors
 	 * SPDX-License-Identifier: MIT
 	 */
-	const REVISION = '156';
+	const REVISION = '157dev';
 	const CullFaceNone = 0;
 	const CullFaceBack = 1;
 	const CullFaceFront = 2;

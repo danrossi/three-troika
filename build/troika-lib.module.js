@@ -8,7 +8,7 @@
  * Copyright 2010-2021 Three.js Authors
  * SPDX-License-Identifier: MIT
  */
-const REVISION = '156';
+const REVISION = '157dev';
 const CullFaceNone = 0;
 const CullFaceBack = 1;
 const CullFaceFront = 2;
@@ -68046,6 +68046,7 @@ function createTextDerivedMaterial(baseMaterial) {
           );
         }
       }
+	  console.log(vertexShader, fragmentShader );
       return { vertexShader, fragmentShader }
     }
   });
@@ -70304,6 +70305,7 @@ const TEXT_MESH_PROPS = [
 class Text3DFacade extends Object3DFacade {
   constructor(parent) {
     const mesh = new Text();
+	console.log("TEXT MESH ", mesh);
     mesh.geometry.boundingSphere.version = 0;
     super(parent, mesh);
 
@@ -71091,6 +71093,7 @@ class UIBlock3DFacadeBase extends Group3DFacade {
       }
       // Update text child...
       if (text) {
+		console.log("TEXT ", text, this.textMaterial);
         const textChild = this._textChildDef || (this._textChildDef = {
           key: 'text',
           facade: UITextNode3DFacade
@@ -71098,7 +71101,7 @@ class UIBlock3DFacadeBase extends Group3DFacade {
         textChild.text = text;
         textChild.font = getInheritable(this, 'font');
         textChild.fontSize = this.getComputedFontSize();
-        textChild.textAlign = getInheritable(this, 'textAlign');
+        /*textChild.textAlign = getInheritable(this, 'textAlign');
         textChild.textIndent = getInheritable(this, 'textIndent');
         textChild.lineHeight = getInheritable(this, 'lineHeight', DEFAULT_LINE_HEIGHT);
         textChild.letterSpacing = getInheritable(this, 'letterSpacing', 0);
@@ -71120,7 +71123,7 @@ class UIBlock3DFacadeBase extends Group3DFacade {
         textChild.depthOffset = -flexNodeDepth - 1;
         textChild.renderOrder = flexNodeDepth + 1;
         textChild.castShadow = this.castShadow;
-        textChild.receiveShadow = this.receiveShadow;
+        textChild.receiveShadow = this.receiveShadow;*/
         this._actualChildren = textChild; //NOTE: text content will clobber any other defined children
       } else {
         // Convert any children specified as plain strings to nested text blocks; handy for JSX style

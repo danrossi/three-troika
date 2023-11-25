@@ -36,7 +36,8 @@ export default [
             strip()
         ],
         external: [
-                "three"
+                "three",
+                "three-webgpu-renderer"
         ],
         output: [
             {

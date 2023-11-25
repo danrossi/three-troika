@@ -1,288 +1,804 @@
-<!DOCTYPE html>
-<html lang="en">
-
 <head>
-	<title>three.js webgl - equirectangular video panorama</title>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-	
-	<style>
-		body {
-			touch-action: none;
-		}
-	</style>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
 
 
-	<div id="container"></div>
-
-	<video id="video" loop muted autoplay crossOrigin="anonymous" preload="metadata" playsinline style="display:none">
-
-	</video>
-
-	<!-- Import maps polyfill -->
-	<!-- Remove this when import maps will be widely supported -->
-	<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
-
-	<script type="importmap">
-			{
-				"imports": {
-					"three": "../three.js/build/three.module.js",
-					"three-webgpu": "../build/webgpu-renderer.module.js",
-					"troika-three-text": "../build/troika-three-text.module.js",
-					"troika-worker-utils": "../build/troika-worker-utils.module.js",
-					"troika-three-utils": "../build/troika-three-utils.module.js",
-					//"three-bmfont-text": "../three-bmfont-text.module.js"
-				}
-			}
-	
-		</script>
-
-	<script type="module">
-
-		import * as THREE from 'three';
-		import { WebGPU, WebGPURenderer, texture, equirectUV } from 'three-webgpu';
-		import {Text} from 'troika-three-text'
-
-		//import { TextBitmap } from 'three-bmfont-text';
-		//import { fontAssets } from '../fontassets.js';
-
-		let _requestVideoFrameCallback = false;
-
-		
-
-
-		class BMFontLoader {
-
-			static loadTexture(image) {
-				return new Promise((resolve, reject) => {
-					const texture = new THREE.TextureLoader().load(image, function(){
-						resolve(texture);
-					}, null, reject);
-				});
-			}
-		}
-
-		class CustomVideoTexture extends THREE.Texture {
-
-			constructor(video) {
-				super(video, THREE.Texture.DEFAULT_MAPPING, THREE.ClampToEdgeWrapping, THREE.ClampToEdgeWrapping, THREE.LinearFilter, THREE.LinearFilter, THREE.RGBAFormat);
-
-				this.generateMipmaps = false;
-
-				const updateVideo = () => {
-
-					this.needsUpdate = true;
-					video.requestVideoFrameCallback(updateVideo);
-
-				}
-
-				if ('requestVideoFrameCallback' in video) {
-
-					_requestVideoFrameCallback = true;
-
-					video.requestVideoFrameCallback(updateVideo);
-
-				}
-
-			}
-
-			get isVideoTexture() {
-				return true;
-			}
-
-			update() {
-				if (!_requestVideoFrameCallback) this.needsUpdate = true;
-			}
-
-		}
-
-
-		let camera, scene, renderer;
-
-		let isUserInteracting = false,
-			lon = 0, lat = 0,
-			phi = 0, theta = 0,
-			onPointerDownPointerX = 0,
-			onPointerDownPointerY = 0,
-			onPointerDownLon = 0,
-			onPointerDownLat = 0;
-
-		const distance = 50;
-
-		const video = document.getElementById('video');
-		video.src = "//videos.electroteque.org/360/ultra_light_flight_720p.mp4";
-		video.play();
-
-		video.addEventListener("loadedmetadata", () => {
-			console.log("loadedmetadata");
-			init();
-		});
+    <!--  <script src="./three.min.js"></script> -->
 
 
 
 
-		async function init() {
-
-			const container = document.getElementById('container');
-
-			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
-
-			scene = new THREE.Scene();
-
-			const geometry = new THREE.SphereGeometry(500, 60, 40);
-			// invert the geometry on the x-axis so that all of the faces point inward
-			geometry.scale(- 1, 1, 1);
+    <canvas id="renderer" style="max-width: 1280px;"></canvas>
 
 
+    <video id="preview" autoplay></video>
 
-			const texture = new CustomVideoTexture(video);
+    <button id="add">Add Camera</button>
 
-			//texture.colorSpace = THREE.SRGBColorSpace;
 
-			//texture.colorSpace = THREE.LinearSRGBColorSpace;
-			let material;
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "../three.js/build/three.module.js",
+                "three-webgpu": "../build/troika-lib.module.js",
+               // "three-bmfont-text": "./three-bmfont-text.module.js"
+            }
+        }
 
-			//if (await WebGPU.isAvailable()) {
-				//console.log("Using WebGPU");
-				renderer = new WebGPURenderer();
-				texture.colorSpace = THREE.SRGBColorSpace;
-				material = new THREE.MeshBasicMaterial({ map: texture });
+    </script>
 
-	
+    <script type="module">
 
-			const mesh = new THREE.Mesh(geometry, material);
-			scene.add(mesh);
+        import * as troika from "../build/troika-lib.module.js";
 
-			
+        //import { TextBitmap } from 'three-bmfont-text';
+        import { fontAssets } from '../fontassets.js';
 
-			const myText = new Text()
-			scene.add(myText)
+        class BMFontLoader {
 
-			// Set properties to configure:
-			myText.text = 'Hello world!'
-			myText.font = "https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxM.woff",
-			myText.fontSize = 0.2
-			myText.position.z = -2
-			myText.color = 0xFFFFFF
-			myText.gpuAccelerateSDF = true;
+            static loadTexture(image) {
+                return new Promise((resolve, reject) => {
+                    const texture = new troika.TextureLoader().load(image, function(){
+                        resolve(texture);
+                    }, null, reject);
+                });
+            }
+        }
 
-			myText.debugSDF = true;
 
-			// Update the rendering:
-			myText.sync();
-			/*const fontsTexture = await BMFontLoader.loadTexture(fontAssets.image);;
 
-			const text = new TextBitmap({
-				text: "Participant Title",
-				width: 1000,
-				align: "center",
-				font: fontAssets.font,
+
+        //troika = await troika;
+
+        var cameraEnabled = true;
+        var renderer = document.getElementById('renderer');
+
+        var preview = document.getElementById('preview');
+
+        var addBtn = document.getElementById('add');
+
+
+        var id = 0;
+
+        addBtn.addEventListener("click", () => {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+                //localVideo.srcObject = stream;
+                id += 1;
+                addVideo(id, stream, "Title " + id);
+            }).catch(e => {
+                console.log(e);
+            });
+
+
+        });
+
+
+
+
+
+        var maxwidth = 1280;
+        var maxheight = 720;
+        var padding = 1;
+        //var columnCount = 3;
+
+
+        const config = {
+            maxWidth: 1280,
+            maxHeight: 720,
+            columnCount: 3,
+            stretchVideo: true,
+            enableFocus: true,
+            bgImage: "images/virtualbg.jpg",
+            logo: "images/wowza-logo.png",
+            logoPosition: "right",
+            logoWidth: "8%",
+            //enableWebGPU: false,
+            enableWebGPU: true,
+            textConfig: {
+                align: "left",
+				//font: fontAssets.font,
 				letterSpacing: 1,
-				flipY: fontsTexture.flipY,
-				scale: 0.010,
+				//flipY: fontsTexture.flipY,
+                width: 400,
+				scale: 0.001,
 				color: "#ffffff",
-				texture: fontsTexture,
-			}, renderer);
+                fontAssets: fontAssets
+				//texture: fontsTexture,
+            },
+            sdfText: true
+        };
 
-			scene.add(text.group);*/
+        const rowConfig = {
+            facade: troika.UIBlock3DFacade,
+            flexDirection: 'row',
+            flexWrap: "wrap",
+            justifyContent: "center",
+            alignContent: "center",
+            width: "100%",
+            padding: [0, 0, 0, 0],
+            margin: [0, 0, 0, 0],
+            flexGrow: 1,
+            flexShrink: 1
+        };
 
-		
 
-			
 
-			//renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
-			//renderer.colorSpace = THREE.LinearSRGBColorSpace;
-			//renderer.outputColorSpace = THREE.SRGBColorSpace;
-			//renderer.colorSpace = THREE.SRGBColorSpace;
+        const visibleHeightAtZDepth = (depth, camera) => {
+            // compensate for cameras not positioned at z=0
+            const cameraOffset = camera.position.z;
+            if (depth < cameraOffset) depth -= cameraOffset;
+            else depth += cameraOffset;
 
-			renderer.setPixelRatio(window.devicePixelRatio);
-			renderer.setSize(window.innerWidth, window.innerHeight);
+            // vertical fov in radians
+            const vFOV = camera.fov * Math.PI / 180;
 
-			//renderer.setSize(video.videoWidth, video.videoHeight );
+            // Math.abs to ensure the result is always positive
+            return 2 * Math.tan(vFOV / 2) * Math.abs(depth);
+        };
 
-			container.appendChild(renderer.domElement);
+        const visibleWidthAtZDepth = (depth, camera) => {
+            const height = visibleHeightAtZDepth(depth, camera);
+            return height * camera.aspect;
+        };
 
-			document.addEventListener('pointerdown', onPointerDown);
-			document.addEventListener('pointermove', onPointerMove);
-			document.addEventListener('pointerup', onPointerUp);
+        let _requestVideoFrameCallback = false;
 
-			//
+        class CustomVideoTexture extends troika.Texture {
 
-			await renderer.init();
+            constructor(video) {
+                super(video, troika.Texture.DEFAULT_MAPPING, troika.ClampToEdgeWrapping, troika.ClampToEdgeWrapping, troika.LinearFilter, troika.LinearFilter, troika.RGBAFormat);
 
-			//window.addEventListener( 'resize', onWindowResize );
+                this.generateMipmaps = false;
 
-			renderer.setAnimationLoop( update);
+                const updateVideo = () => {
 
-			//animate();
+                    this.needsUpdate = true;
+                    video.requestVideoFrameCallback(updateVideo);
 
-		}
+                }
 
-		function onWindowResize() {
+                if ('requestVideoFrameCallback' in video) {
 
-			camera.aspect = window.innerWidth / window.innerHeight;
-			camera.updateProjectionMatrix();
+                    _requestVideoFrameCallback = true;
 
-			renderer.setSize(window.innerWidth, window.innerHeight);
+                    video.requestVideoFrameCallback(updateVideo);
 
-		}
+                }
 
-		function onPointerDown(event) {
+            }
 
-			isUserInteracting = true;
+            get isVideoTexture() {
+                return true;
+            }
 
-			onPointerDownPointerX = event.clientX;
-			onPointerDownPointerY = event.clientY;
+            update() {
+                if (!_requestVideoFrameCallback) this.needsUpdate = true;
+            }
 
-			onPointerDownLon = lon;
-			onPointerDownLat = lat;
+        }
 
-		}
+        
 
-		function onPointerMove(event) {
 
-			if (isUserInteracting === true) {
+        class VideoFacade extends troika.Object3DFacade {
+            constructor(parent) {
+                super(parent);
 
-				lon = (onPointerDownPointerX - event.clientX) * 0.1 + onPointerDownLon;
-				lat = (onPointerDownPointerY - event.clientY) * 0.1 + onPointerDownLat;
+            }
 
-			}
+            initThreeObject() {
 
-		}
 
-		function onPointerUp() {
+                const videoTexture = this.createTexture(this.parent.texture);
 
-			isUserInteracting = false;
+                let material;
 
-		}
 
-		function animate() {
+                if (this.parent.hasWebGPU) {
+                    videoTexture.colorSpace = troika.SRGBColorSpace;
+                    material = new troika.MeshBasicMaterial({ map: videoTexture });
+                } else {
+                    material = new troika.MeshBasicMaterial({ map: videoTexture });
+                }
 
-			requestAnimationFrame(animate);
-			update();
 
-		}
+                //const material = new troika.MeshBasicMaterial({ color:0x000000 });
+                return new troika.Mesh(this.geometry, material);
+            }
 
-		function update() {
+            createTexture(video) {
 
-			lat = Math.max(- 85, Math.min(85, lat));
-			phi = THREE.MathUtils.degToRad(90 - lat);
-			theta = THREE.MathUtils.degToRad(lon);
+                var texture = new CustomVideoTexture(video);
+                //texture.needsUpdate = true;
+                //texture.minFilter = troika.LinearFilter;
+                //texture.magFilter = troika.LinearFilter;
+                //texture.format = troika.RGBAFormat;
+                //texture.colorSpace = troika.SRGBColorSpace;
 
-			/*camera.position.x = distance * Math.sin(phi) * Math.cos(theta);
-			camera.position.y = distance * Math.cos(phi);
-			camera.position.z = distance * Math.sin(phi) * Math.sin(theta);*/
+                texture.crossOrigin = 'anonymous';
 
-			//camera.lookAt(0, 0, 0);
+                return texture;
+            }
 
-			renderer.render(scene, camera);
+            afterUpdate() {
 
-		}
 
-	</script>
+
+                this.borderMaterial = new troika.MeshBasicMaterial({ color: 0 });
+                this.borderMaterial.visible = false;
+
+
+                this.x = this.offsetLeft + this.offsetWidth / 2;
+
+                let newHeight = this.clientHeight;
+
+                if (!this.parent.stretchVideo) {
+                    const heightRatio = this.clientWidth * this.parent.ratio;
+                    this.parent.aspectRatio = this.clientWidth / heightRatio;
+                    newHeight = Math.min(heightRatio, this.clientHeight);
+
+                }
+
+                this.scaleY = newHeight;
+                this.y = -(this.offsetTop + this.clientTop + newHeight / 2);
+
+                this.scaleX = this.clientWidth;
+                this.scaleZ = Math.min(this.clientWidth, this.parent.clientHeight);
+
+                super.afterUpdate();
+            }
+
+            get geometry() {
+                return new troika.PlaneGeometry(1, 1, 1, 1);
+            }
+
+            set width(width) {
+                this.scaleX = width
+            }
+            get width() {
+                return this.scaleX
+            }
+
+            set depth(width) {
+                this.scaleZ = width
+            }
+            get depth() {
+                return this.scaleZ
+            }
+
+        }
+
+        const VideoFacadeFlex = troika.extendAsFlexNode(VideoFacade);
+
+        const videoConfig = {
+            key: "video",
+            facade: VideoFacadeFlex,
+            backgroundColor: 0x444444,
+            margin: 0,
+            padding: 0,
+            flexGrow: 1,
+            flexShrink: 1,
+            width: "100%",
+            height: "100%"
+        };
+
+        const titleConfig = {
+            facade: troika.SDFBlock3DFacade,
+            //facade: troika.UIBlock3DFacade,
+            flexGrow: 1,
+            flexShrink: 1,
+            padding: 0.02,
+
+            backgroundColor: 0x444444,
+            margin: [0, 0.02, 0, 0.02],
+            overflow: 'none',
+            flexWrap: "wrap",
+            //flexBasis: 1 * .33,
+            justifyContent: "flex-start",
+            alignItems: "flex-start",
+            position: "absolute",
+            alignSelf: "flex-end",
+            left: 0,
+            bottom: 0
+        };
+
+
+        class VideoItemFacade extends troika.UIBlock3DFacade {
+
+            constructor(parent) {
+                super(parent);
+
+            }
+
+            afterUpdate() {
+
+                this.children = [];
+
+                let videoItem;
+
+                /*try {
+                    throw new Error("error");
+                } catch (e) {
+                    console.log("update", e);
+                }*/
+                
+                //console.log("update");
+
+                
+
+
+                videoItem = Object.assign({}, videoConfig, { key: "video" + this.id });
+
+                //console.log("Profile Item ", videoItem);
+
+                videoItem.flexBasis = this.flexBasis;
+
+                //this.children.push(videoItem);
+
+                 //console.log(this.textConfig);
+
+                if (this.title) {
+                    this.parent.textConfig = this.textConfig;
+                    this.parent.hasWebGPU = this.hasWebGPU;
+                    let titleItem = Object.assign({}, titleConfig, { key: "title" + this.id, text: "", content: this.title, textConfig: this.textConfig, hasWebGPU: this.hasWebGPU });
+                    this.children.push(titleItem);
+                }
+
+                try {
+
+                super.afterUpdate();
+                } catch (e) {
+                    console.log(e);
+                }
+
+
+                const border = this.layers.getChildByKey("border");
+
+                if (border) border.visible = false;
+            }
+        }
+
+        class VideoMerger extends troika.World3DFacade {
+
+            constructor(canvas, config) {
+                super(canvas);
+
+                if (config.bgImage) this.bgImage = config.bgImage;
+
+
+
+                this.config = config;
+
+                this.pixelRatio = 1;
+                this.antialias = true;
+                this.width = config.maxWidth;
+                this.height = config.maxHeight;
+
+                this.textConfig = config.textConfig;
+
+                
+
+
+                //this.antialias = true;
+                this.bgColor = config.bgColor || "#000000";
+                this.camera = {
+                    fov: 75,
+                   // x: 6.926950826802958,
+                    //x: 0,
+                   // y: -2.58284056910726,
+                    //z: 800,
+                    //y: 0,
+                    z: 1,
+                    fontSize: 0.04
+                };
+
+	
+    
+                this.continuousRender = true;
+
+                this.streamTextures = new Map();
+
+                this.ratio = this.height / this.width;
+
+                //const heightUnit = this.widthUnit * ratio;
+
+                this.objects = [{
+                    key: 'root',
+                    facade: troika.Group3DFacade,
+                    //z: -0.01,
+                    flexDirection: 'row',
+                    justifyContent: "flex-start",
+                    align: 'flex-start',
+                    width: "100%",
+
+
+                    children: [
+                        {
+                            key: 'ui',
+                            facade: troika.UIBlock3DFacade,
+                            flexDirection: 'row',
+                            justifyContent: "center",
+                            align: 'center',
+                            width: "100%",
+                            overflow: 'show',
+                            color: 0xffffff,
+                            fontSize: 0.04,
+                            margin: [0, 0, 0, 0],
+                            padding: [0, 0, 0, 0],
+                            flexDirection: 'column',
+                            flexWrap: 'wrap',
+                            alignItems: 'stretch',
+                            children: [
+
+                            ]
+                        },
+                        {
+                            key: 'overlays',
+                            facade: troika.UIBlock3DFacade,
+                            z: 0.01,
+                            flexDirection: 'row',
+                            justifyContent: "flex-start",
+                            align: 'flex-start',
+                            width: "100%",
+                            children: []
+                        }
+                    ]
+                }
+                ];
+
+                if (config.logo) this.logo = config.logo;
+
+
+
+                this.init(canvas);
+
+
+            }
+
+            async init(canvas) {
+
+                if (this.config.enableWebGPU && troika.WebGPU.isAvailable()) {
+                    this.hasWebGPU = true;
+
+                    this.rendererClass = troika.WebGPURenderer;
+                    this._threeRenderer = new troika.WebGPURenderer({ canvas: canvas, alpha: true, antialias: true });
+                }
+
+                // this.outputColorSpace = troika.LinearSRGBColorSpace;
+                // this.colorSpace = troika.LinearSRGBColorSpace;
+                this.outputColorSpace = troika.SRGBColorSpace;
+                this.colorSpace = troika.SRGBColorSpace;
+
+                let fontsTexture;
+
+                if (this.config.sdfText) {
+                    fontsTexture = await BMFontLoader.loadTexture(this.config.textConfig.fontAssets.image);
+                    this.config.textConfig.texture = fontsTexture;
+                    this.config.textConfig.font = this.config.textConfig.fontAssets.font;
+                    this.config.textConfig.flipY = fontsTexture.flipY;
+                }
+
+                
+                
+
+                this.afterUpdate();
+
+                const camera = this.getChildByKey('camera').threeObject;
+
+                //console.log(this.getChildByKey('scene'));
+
+                const widthUnit = visibleWidthAtZDepth(0, camera) + 0.03,
+                    heightUnit = visibleHeightAtZDepth(0, camera) + 0.02;
+
+                this.resizeLayer(this.ui, widthUnit, heightUnit);
+                this.resizeLayer(this.overlay, widthUnit, heightUnit);
+                
+                const scene = this.getChildByKey('scene').threeObject;
+
+                console.log("texture", fontsTexture);
+
+                const text = new troika.TextBitmap({
+                //text: "B",
+				text: "Participant Title",
+                width: 400,
+                align: "left",
+                font: fontAssets.font,
+                letterSpacing: 1,
+				//flipY: false,
+                flipY: fontsTexture.flipY,
+                scale: 0.0001,
+                color: "#ffffff",
+                texture: fontsTexture,
+            }, this._threeRenderer.isWebGPURenderer);
+
+
+
+          //  text.rotation.y = - Math.PI / 2;
+
+            scene.add(text.group);
+
+                this.afterUpdate();
+            }
+
+            set logo(logoURL) {
+                if (!this.logoIndex) {
+                    const logo = {
+                        key: 'logo',
+                        facade: troika.UIImage3DFacade,
+                        src: logoURL,
+                        width: this.config.logoWidth,
+                        //width: "8%",
+                        transparent: true,
+                        position: "absolute",
+                        top: 0.01,
+                        //right: 0.03,
+                        padding: 0.02,
+                    };
+
+                    switch (this.config.logoPosition) {
+                        case "left":
+                            logo.left = 0;
+                            break;
+                        case "right":
+                        default:
+                            logo.right = 0.03;
+                            break;
+                    }
+
+                    this.overlay.children.push(logo);
+                    this.logoIndex = this.overlay.children.length - 1;
+                } else {
+                    this.overlay.children[this.logoIndex].src = logoURL;
+                }
+
+            }
+
+            set bgImage(value) {
+                this.background = new troika.TextureLoader().load(value);
+                this.background.colorSpace = troika.SRGBColorSpace;
+            }
+
+            set bgColor(value) {
+                this.backgroundColor = value;
+            }
+
+            update() {
+                this.afterUpdate();
+            }
+
+
+
+            resizeLayer(container, width, height) {
+                container.width = width;
+                container.height = height;
+                container.x = -width / 2;
+                container.y = height / 2;
+            }
+
+            get uiBlock() {
+                return this.getChildByKey('scene').getChildByKey('instancingMgr').getChildByKey("root").getChildByKey("ui");
+            }
+
+            get root() {
+                return this.objects[0];
+            }
+
+            get ui() {
+                return this.root.children[0];
+            }
+
+            get overlay() {
+                return this.root.children[1];
+            }
+
+
+            initThreeObject() {
+                const scene = new troika.Scene();
+                // We always manually update world matrices when needed - see Object3DFacade.updateMatrices() -
+                // so the additional autoUpdate pass done by threejs before render is not needed:
+                scene.matrixWorldAutoUpdate = false;
+                return scene
+            }
+
+            get videoCellConfig() {
+                return {
+                    facade: VideoItemFacade,
+                    flexGrow: 1,
+                    flexShrink: 1,
+                    padding: 0,
+                    margin: 0,
+                    margin: [0, 0.0001, 0, 0.0001],
+                    overflow: 'none',
+                    flexBasis: 1 * .33,
+                    ratio: this.ratio,
+                    borderWidth: this.enableFocus ? 0.008 : 0,
+                    borderColor: 0x4248f5,
+                    onClick: (e) => {
+
+                    }
+                };
+            }
+
+            createVideo(stream) {
+
+                var video = document.createElement('video');
+                //document.body.appendChild(video);
+                video.autoplay = true;
+                video.srcObject = stream;
+                video.muted = true;
+                video.load();
+                video.play();
+                return video;
+            }
+
+            addItem(stream, id, title = null) {
+
+                //this.maxStretchedVideos = 2;
+
+                // console.log("add item ", profile);
+
+                //  let video;
+
+                if (stream instanceof MediaStream) {
+                    //video = this.createVideo(stream);
+                    var video = document.createElement('video');
+                    //document.body.appendChild(video);
+                    video.autoplay = true;
+                    video.muted = true;
+                    video.addEventListener("loadedmetadata", () => {
+                        console.log("got metadata");
+
+                        this.onAddTexture(id, video, title);
+                    });
+
+
+                    video.srcObject = stream;
+
+                    video.load();
+                    video.play();
+                } else {
+                    video = stream;
+                    this.onAddTexture(id, video, title);
+                }
+
+                //  video = this.createVideo(stream);
+
+
+
+
+
+
+            }
+
+            onAddTexture(id, video, title) {
+                let key = id + '';
+
+                let itemConfig = Object.assign({}, this.videoCellConfig, { key: key, id: key, texture: video, order: this.streamTextures.size + 1, stretchVideo: true, title: title, hasWebGPU: this.hasWebGPU, textConfig: this.textConfig });
+
+                //itemConfig.children[0].key+=id;
+
+
+                this.streamTextures.set(key, itemConfig);
+
+                this.rebuildGrid();
+            }
+
+            rebuildGrid() {
+                //const columnCount = 3;
+                let index = 0;
+                const itemRows = [];
+
+                let columnCount = 1;
+
+                if (this.streamTextures.size > 1 && this.streamTextures.size <= 4)
+                    columnCount = 2;
+
+                else if (this.streamTextures.size > 4 && this.streamTextures.size <= 9)
+                    columnCount = 3;
+                else if (this.streamTextures.size > 9 && this.streamTextures.size <= 12)
+                    columnCount = 4;
+                else if (this.streamTextures.size > 12 && this.streamTextures.size <= 21)
+                    columnCount = 5;
+
+
+                this.stretchVideo = false;
+
+                let maxRowHeight = this.streamTextures.size == 1 || this.streamTextures.size == 2 && this.stretchVideo ? "100%" : "50%";
+
+                this.streamTextures.forEach((value, key) => {
+
+                    var row = Math.floor(index / columnCount);
+                    if (!itemRows[row]) itemRows[row] = Object.assign({}, rowConfig, { key: "videorow" + row, maxHeight: maxRowHeight });
+                    if (index % columnCount == 0)
+                        itemRows[row].children = [];
+
+                    value.flexBasis = 1 / columnCount;
+                    //value.children[0].flexBasis = 1 / columnCount;
+                    value.maxWidth = (100 / columnCount) + "%";
+                    //if (index > 0) value.maxWidth = (100 / columnCount) + "%";
+
+                    itemRows[row].children.push(value);
+                    index++;
+
+                });
+
+
+                this.ui.children = itemRows;
+
+                console.log("AFTER UPDATE");
+
+                this.afterUpdate();
+
+                const uiBlock = this.uiBlock;
+
+                setTimeout(() => {
+
+                    uiBlock.forEachChild(child => {
+                        child.forEachChild((child2, k) => {
+
+                            if (child2.layers.getChildByKey("border")) {
+                                const border = child2.layers.getChildByKey("border");
+
+                                if (this.streamTextures.get(k)) {
+                                    const item = this.streamTextures.get(k);
+                                    item.border = border;
+                                }
+                            }
+
+                        });
+                    });
+                }, 1000);
+
+            }
+
+
+
+        }
+
+
+
+
+
+        function addVideo(id, stream, title) {
+
+            merger.addItem(stream, id, title);
+
+        }
+
+
+
+        const merger = new VideoMerger(renderer, config);
+
+        function addExternalVideo() {
+            const video = document.createElement("video");
+            video.autoplay = true;
+            video.muted = true;
+            video.crossOrigin = "anonymous";
+
+            video.addEventListener("loadedmetadata", () => {
+                setTimeout(() => {
+                    console.log("add Video");
+                    addVideo(1, video, "Title 1");
+                }, 1000);
+            });
+
+            video.src = "https://videos.electroteque.org/bitrate/sintel_2000k.mp4";
+            video.play();
+        }
+        addExternalVideo();
+
+
+
+
+
+    </script>
+
+
 </body>
 
 </html>

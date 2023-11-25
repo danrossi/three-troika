@@ -42,7 +42,7 @@
 	<script type="module">
 
 		import * as THREE from 'three';
-		import { WebGPU, WebGPURenderer, WebGPUGLRenderer, texture, equirectUV } from 'three-webgpu-renderer';
+		import { WebGPU, WebGPURenderer, WebGPUGLRenderer, texture, uv, NodeMaterial, MeshBasicNodeMaterial, texture, color, min, max, tslFn } from 'three-webgpu-renderer';
 		import {Text} from 'troika-three-text'
 
 
@@ -78,12 +78,12 @@
 			const container = document.getElementById('container');
 
 			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
-
+          //  camera.position.x = 6.926950826802958;
+			//camera.position.y = -2.58284056910726;
+			//camera.position.z = 0;
 			scene = new THREE.Scene();
 
-			const geometry = new THREE.SphereGeometry(500, 60, 40);
-			// invert the geometry on the x-axis so that all of the faces point inward
-			geometry.scale(- 1, 1, 1);
+		
 
 
 
@@ -94,49 +94,30 @@
 
 			//if (await WebGPU.isAvailable()) {
 				//console.log("Using WebGPU");
-			//	renderer = new WebGPURenderer();
-			renderer = new THREE.WebGLRenderer();
-			//renderer.colorSpace = THREE.LinearSRGBColorSpace;
-			renderer.colorSpace = THREE.SRGBColorSpace;
+				renderer = new WebGPURenderer();
+			//renderer = new THREE.WebGLRenderer();
 			//renderer = new WebGPUGLRenderer({}, true);
 			
 
-			const myText = new Text()
-			scene.add(myText)
+            const geometry = new THREE.PlaneGeometry(10, 10).translate(0.5, -0.5, 0);
+            //const geometry = new THREE.PlaneGeometry(10, 10);
+            const imgMaterial = new THREE.MeshBasicMaterial();
+            const imgMaterial2 = NodeMaterial.fromMaterial(imgMaterial);
+          //const imgMaterial2 = new MeshBasicNodeMaterial();  
+          const loader = new THREE.TextureLoader();
+            
 
-			// Set properties to configure:
-			myText.text = 'Hello world!'
-			myText.font = "https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxM.woff",
-			myText.fontSize = 0.3
-			myText.position.z = -2
-			myText.color = 0xbc131f
-			myText.gpuAccelerateSDF = true;
-			myText.textScale = 1;
-      		myText.lineHeight = 1.15;
-      		myText.letterSpacing = 0;
-      		myText.maxWidth = 2;
-			myText.textAlign = 'justify';
-      		myText.textIndent = 0;
-			myText.anchorX = 'center';
-			myText.anchorY = 'middle';
-			
-			myText.fillOpacity = 1;
-			myText.strokeOpacity = 1;
-			myText.strokeColor = 0x808080;
-			myText.strokeWidth = 0;
-			myText.outlineWidth = 0;
-			myText.outlineOffsetX = 0;
-			myText.outlineOffsetY = 0;
-			myText.outlineOpacity = 1;
-			myText.outlineBlur = 0;
-			myText.curveRadius = 0;
+            //const imgMesh = new THREE.Mesh(geometry, imgMaterial);
+            const imgMesh = new THREE.Mesh(geometry, imgMaterial2);
 
-			myText.colorSpace = THREE.SRGBColorSpace;
+            imgMaterial2.colorNode = texture(loader.load("./images/wowza-logo.png"), uv());
+            
+            //imgMaterial.map = loader.load("./wowza-logo.png");
 
-			myText.debugSDF = true;
-
-			// Update the rendering:
-			myText.sync();
+            //imgMaterial.map.colorSpace = THREE.SRGBColorSpace;
+  
+            imgMesh.position.z = -50;
+            scene.add(imgMesh);
 			
 
 			renderer.setPixelRatio(window.devicePixelRatio);

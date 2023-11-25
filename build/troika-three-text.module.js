@@ -3049,6 +3049,8 @@ function getTextRenderInfo(args, callback) {
     initContextLossHandling(atlas);
   }
 
+  if (args.colorSpace) atlas.sdfTexture.colorSpace = args.colorSpace;
+
   const {sdfTexture, sdfCanvas} = atlas;
   let fontGlyphs = atlas.glyphsByFont.get(args.font);
   if (!fontGlyphs) {
@@ -3414,7 +3416,6 @@ class GlyphsGeometry extends InstancedBufferGeometry {
 
     this.detail = 1;
     this.curveRadius = 0;
-    this.instanceCount = 0;
 
     // Define groups for rendering text outline as a separate pass; these will only
     // be used when the `material` getter returns an array, i.e. outlineWidth > 0.
@@ -3490,7 +3491,6 @@ class GlyphsGeometry extends InstancedBufferGeometry {
     this._blockBounds = blockBounds;
     this._chunkedBounds = chunkedBounds;
     this.instanceCount = glyphAtlasIndices.length;
-    console.log("instance ", this.instanceCount);
     this._updateBounds();
   }
 
@@ -4246,6 +4246,7 @@ class Text extends Mesh {
           overflowWrap: this.overflowWrap,
           anchorX: this.anchorX,
           anchorY: this.anchorY,
+          colorSpace: this.colorSpace,
           colorRanges: this.colorRanges,
           includeCaretPositions: true, //TODO parameterize
           sdfGlyphSize: this.sdfGlyphSize,

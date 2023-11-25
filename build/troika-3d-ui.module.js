@@ -1396,4 +1396,4 @@ class UIImage3DFacade extends Object3DFacade {
 
 var UIImage3DFacade$1 = extendAsFlexNode(UIImage3DFacade);
 
-export { UIBlock3DFacade, UIImage3DFacade$1 as UIImage3DFacade, extendAsFlexNode };
+export { INHERITABLES, ScrollbarsFacade, UIBlock3DFacade, UIBlockLayer3DFacade, UIImage3DFacade$1 as UIImage3DFacade, extendAsFlexNode, getComputedFontSize, getInheritable };
